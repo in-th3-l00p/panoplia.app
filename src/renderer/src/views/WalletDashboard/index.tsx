@@ -1,6 +1,4 @@
 import { useNavigate } from 'react-router-dom'
-import { useEthWallet } from '@renderer/hooks/use-eth-wallet'
-import { useEthBalance } from '@renderer/hooks/use-eth-balance'
 import {
   BalanceChart,
   WalletInfo,
@@ -11,8 +9,19 @@ import {
 
 export function WalletDashboard() {
   const navigate = useNavigate()
-  const { activeWallet } = useEthWallet()
-  const { usdBalance, ethBalance, change24h } = useEthBalance()
+
+  // Read the active wallet from localStorage (stored by WalletSelection)
+  const stored = localStorage.getItem('panoplia_active_wallet')
+  const activeWallet = stored ? JSON.parse(stored) : null
+
+  if (!activeWallet) {
+    navigate('/wallets')
+    return null
+  }
+
+  const usdBalance: number = activeWallet.usdBalance ?? 0
+  const ethBalance: string = activeWallet.balance ?? '0.0000'
+  const change24h = 2.34 // hardcoded until a real library is integrated
 
   // Redirect if no wallet is selected
   if (!activeWallet) {

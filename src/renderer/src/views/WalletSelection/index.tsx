@@ -1,111 +1,74 @@
 /**
  * WalletSelection View
  * Lists wallets and handles wallet creation/import.
- * Uses the new EthWallet context for local/mock operations
- * and falls back to the original MPC hooks when the server is connected.
+ * Uses hardcoded wallet data — a real wallet library will be integrated later.
  */
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 
-import { useEthWallet } from '@renderer/hooks/use-eth-wallet'
-import { useServerStatus } from '@renderer/hooks/use-server-status'
-import { useWallets } from '@renderer/hooks/use-wallets'
-import type { EthWallet } from '@renderer/contexts/eth-wallet'
-
+import type { Wallet } from './types'
 import {
-  ServerStatusIndicator,
   WalletListHeader,
   WalletList,
   WalletActionButtons,
   CreateWalletDialog,
-  VerifyWalletDialog,
   ImportWalletDialog
 } from './components'
+
+/** Hardcoded demo wallets */
+const HARDCODED_WALLETS: Wallet[] = [
+  {
+    id: '1',
+    name: 'Main Wallet',
+    address: '0x742d35Cc6634C0532925a3b844Bc9e7595f4a23F',
+    balance: '2.4521',
+    usdBalance: 8_234.56
+  },
+  {
+    id: '2',
+    name: 'Trading Wallet',
+    address: '0x8B3392483BA26D65E331dB86D4F430E9B3814E5e',
+    balance: '0.8234',
+    usdBalance: 2_765.12
+  }
+]
 
 export function WalletSelection() {
   const navigate = useNavigate()
 
-  // Context-based wallet management (mocked)
-  const { wallets, isLoading, selectWallet, createWallet: createMockWallet } = useEthWallet()
-
-  // Original server-backed hooks (still usable when MPC server is live)
-  const { createWallet: createMpcWallet, verifyWallet, createState } = useWallets()
-  const { isConnected, status } = useServerStatus(30_000)
-
-  // ── Dialog state ───────────────────────────────────────────────────────
-
+  const [wallets, setWallets] = useState<Wallet[]>(HARDCODED_WALLETS)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showImportDialog, setShowImportDialog] = useState(false)
-  const [showVerifyDialog, setShowVerifyDialog] = useState(false)
-
-  // ── Form state ─────────────────────────────────────────────────────────
-
   const [newWalletName, setNewWalletName] = useState('')
-  const [newWalletEmail, setNewWalletEmail] = useState('')
-  const [newWalletPassword, setNewWalletPassword] = useState('')
-  const [verificationCode, setVerificationCode] = useState('')
 
-  // ── Handlers ───────────────────────────────────────────────────────────
-
-  const handleSelectWallet = (wallet: EthWallet) => {
-    selectWallet(wallet)
+  const handleSelectWallet = (wallet: Wallet) => {
+    // Store selected wallet id so other views can read it
+    localStorage.setItem('panoplia_active_wallet', JSON.stringify(wallet))
     navigate('/dashboard')
   }
 
-  const handleCreateWallet = async () => {
+  const handleCreateWallet = () => {
     if (!newWalletName.trim()) return
 
-    if (!isConnected) {
-      // Use context-based mock creation
-      createMockWallet(newWalletName)
-      setNewWalletName('')
-      setShowCreateDialog(false)
-      return
-    }
-
-    // MPC server creation flow
-    const vaultId = await createMpcWallet({
+    const wallet: Wallet = {
+      id: Date.now().toString(),
       name: newWalletName,
-      email: newWalletEmail,
-      password: newWalletPassword,
-      type: 'fast'
-    })
-
-    if (vaultId && createState.requiresVerification) {
-      setShowCreateDialog(false)
-      setShowVerifyDialog(true)
+      address: `0x${Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`,
+      balance: '0.0000',
+      usdBalance: 0
     }
-  }
 
-  const handleVerifyWallet = async () => {
-    if (!createState.vaultId || !verificationCode) return
-
-    const wallet = await verifyWallet({
-      vaultId: createState.vaultId,
-      code: verificationCode
-    })
-
-    if (wallet) {
-      setShowVerifyDialog(false)
-      resetForm()
-    }
-  }
-
-  const resetForm = () => {
-    setVerificationCode('')
+    setWallets((prev) => [...prev, wallet])
     setNewWalletName('')
-    setNewWalletEmail('')
-    setNewWalletPassword('')
+    setShowCreateDialog(false)
   }
 
   const handleCreateDialogChange = (open: boolean) => {
     setShowCreateDialog(open)
-    if (!open) resetForm()
+    if (!open) setNewWalletName('')
   }
-
-  // ── Render ─────────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
@@ -114,11 +77,10 @@ export function WalletSelection() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <ServerStatusIndicator status={status} isConnected={isConnected} />
         <WalletListHeader />
         <WalletList
           wallets={wallets}
-          isLoading={isLoading}
+          isLoading={false}
           onSelect={handleSelectWallet}
         />
         <WalletActionButtons
@@ -127,29 +89,14 @@ export function WalletSelection() {
         />
       </motion.div>
 
-      {/* Dialogs */}
       <CreateWalletDialog
         open={showCreateDialog}
         onOpenChange={handleCreateDialogChange}
-        isConnected={isConnected}
         walletName={newWalletName}
         onWalletNameChange={setNewWalletName}
-        email={newWalletEmail}
-        onEmailChange={setNewWalletEmail}
-        password={newWalletPassword}
-        onPasswordChange={setNewWalletPassword}
-        isCreating={createState.isCreating}
-        error={createState.error}
+        isCreating={false}
+        error={null}
         onSubmit={handleCreateWallet}
-      />
-
-      <VerifyWalletDialog
-        open={showVerifyDialog}
-        onOpenChange={setShowVerifyDialog}
-        code={verificationCode}
-        onCodeChange={setVerificationCode}
-        isVerifying={createState.isCreating}
-        onSubmit={handleVerifyWallet}
       />
 
       <ImportWalletDialog

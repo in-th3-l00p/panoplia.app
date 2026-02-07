@@ -3,8 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { ChevronLeft } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
-import { useEthWallet } from '@renderer/hooks/use-eth-wallet'
-import { useEthBalance } from '@renderer/hooks/use-eth-balance'
 import {
   TransferModeToggle,
   AmountInput,
@@ -14,11 +12,16 @@ import {
   type TransferMode
 } from './components'
 
+/** Hardcoded ETH price until a real library is integrated */
+const ETH_PRICE_USD = 3_357.42
+
 export function Transfer() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { activeWallet } = useEthWallet()
-  const { ethBalance, ethPriceUsd } = useEthBalance()
+
+  // Read the active wallet from localStorage (stored by WalletSelection)
+  const stored = localStorage.getItem('panoplia_active_wallet')
+  const activeWallet = stored ? JSON.parse(stored) : null
 
   const initialMode = (searchParams.get('mode') as TransferMode) || 'deposit'
   const [mode, setMode] = useState<TransferMode>(initialMode)
@@ -36,6 +39,7 @@ export function Transfer() {
     return null
   }
 
+  const ethBalance: string = activeWallet.balance ?? '0.0000'
   const numericAmount = parseFloat(amount) || 0
   const isValidAmount =
     numericAmount > 0 &&
@@ -74,7 +78,7 @@ export function Transfer() {
         <AmountInput
           amount={amount}
           onAmountChange={setAmount}
-          ethPriceUsd={ethPriceUsd}
+          ethPriceUsd={ETH_PRICE_USD}
         />
         <BalanceInfoBar
           balance={ethBalance}

@@ -1,5 +1,4 @@
 import { Routes, Route } from 'react-router-dom'
-import { EthWalletProvider } from './contexts/eth-wallet'
 import { SplashScreen } from './views/SplashScreen'
 import { WalletSelection } from './views/WalletSelection'
 import { WalletDashboard } from './views/WalletDashboard'
@@ -8,15 +7,13 @@ import { Settings } from './views/Settings'
 
 function App(): React.JSX.Element {
   return (
-    <EthWalletProvider>
-      <Routes>
-        <Route path="/" element={<SplashScreen />} />
-        <Route path="/wallets" element={<WalletSelection />} />
-        <Route path="/dashboard" element={<WalletDashboard />} />
-        <Route path="/transfer" element={<Transfer />} />
-        <Route path="/settings" element={<Settings />} />
-      </Routes>
-    </EthWalletProvider>
+    <Routes>
+      <Route path="/" element={<SplashScreen />} />
+      <Route path="/wallets" element={<WalletSelection />} />
+      <Route path="/dashboard" element={<WalletDashboard />} />
+      <Route path="/transfer" element={<Transfer />} />
+      <Route path="/settings" element={<Settings />} />
+    </Routes>
   )
 }
 

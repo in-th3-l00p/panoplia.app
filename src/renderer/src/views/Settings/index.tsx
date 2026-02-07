@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { ChevronLeft } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
-import { useEthWallet } from '@renderer/hooks/use-eth-wallet'
 import {
   SettingsHeader,
   SettingsList,
@@ -14,8 +13,11 @@ import {
 
 export function Settings() {
   const navigate = useNavigate()
-  const { activeWallet, removeWallet } = useEthWallet()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+
+  // Read the active wallet from localStorage (stored by WalletSelection)
+  const stored = localStorage.getItem('panoplia_active_wallet')
+  const activeWallet = stored ? JSON.parse(stored) : null
 
   if (!activeWallet) {
     navigate('/wallets')
@@ -23,7 +25,7 @@ export function Settings() {
   }
 
   const handleDelete = () => {
-    removeWallet(activeWallet.id)
+    localStorage.removeItem('panoplia_active_wallet')
     setShowDeleteDialog(false)
     navigate('/wallets')
   }

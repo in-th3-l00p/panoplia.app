@@ -1,12 +1,12 @@
 import { motion, AnimatePresence } from 'motion/react'
 import { Loader2 } from 'lucide-react'
 import { WalletCard } from './WalletCard'
-import type { EthWallet } from '@renderer/contexts/eth-wallet'
+import type { Wallet } from '../types'
 
 interface WalletListProps {
-  wallets: EthWallet[]
+  wallets: Wallet[]
   isLoading: boolean
-  onSelect: (wallet: EthWallet) => void
+  onSelect: (wallet: Wallet) => void
 }
 
 export function WalletList({ wallets, isLoading, onSelect }: WalletListProps) {

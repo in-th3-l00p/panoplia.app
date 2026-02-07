@@ -2,12 +2,12 @@ import { motion } from 'motion/react'
 import { ChevronRight } from 'lucide-react'
 import { Card } from '@renderer/components/ui/card'
 import { shortenAddress, formatUSD } from '@renderer/lib/utils'
-import type { EthWallet } from '@renderer/contexts/eth-wallet'
+import type { Wallet } from '../types'
 
 interface WalletCardProps {
-  wallet: EthWallet
+  wallet: Wallet
   index: number
-  onSelect: (wallet: EthWallet) => void
+  onSelect: (wallet: Wallet) => void
 }
 
 export function WalletCard({ wallet, index, onSelect }: WalletCardProps) {

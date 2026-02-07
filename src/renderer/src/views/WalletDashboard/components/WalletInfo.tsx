@@ -2,10 +2,9 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { Copy, Check } from 'lucide-react'
 import { shortenAddress } from '@renderer/lib/utils'
-import type { EthWallet } from '@renderer/contexts/eth-wallet'
 
 interface WalletInfoProps {
-  wallet: EthWallet
+  wallet: { name: string; address: string }
 }
 
 export function WalletInfo({ wallet }: WalletInfoProps) {

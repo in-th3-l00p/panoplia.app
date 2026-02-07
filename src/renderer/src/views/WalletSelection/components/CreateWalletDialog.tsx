@@ -12,13 +12,8 @@ import { Input } from '@renderer/components/ui/input'
 interface CreateWalletDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  isConnected: boolean
   walletName: string
   onWalletNameChange: (value: string) => void
-  email: string
-  onEmailChange: (value: string) => void
-  password: string
-  onPasswordChange: (value: string) => void
   isCreating: boolean
   error: Error | null
   onSubmit: () => void
@@ -27,13 +22,8 @@ interface CreateWalletDialogProps {
 export function CreateWalletDialog({
   open,
   onOpenChange,
-  isConnected,
   walletName,
   onWalletNameChange,
-  email,
-  onEmailChange,
-  password,
-  onPasswordChange,
   isCreating,
   error,
   onSubmit
@@ -47,14 +37,11 @@ export function CreateWalletDialog({
             Create New Wallet
           </DialogTitle>
           <DialogDescription>
-            {isConnected
-              ? 'Your wallet will be secured using MPC technology'
-              : 'Creating wallet in offline mode (mock)'}
+            Your wallet will be secured using MPC technology
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 pt-4">
-          {/* Wallet Name */}
           <div>
             <label className="text-sm text-muted-foreground mb-2 block">
               Wallet Name
@@ -65,34 +52,6 @@ export function CreateWalletDialog({
               onChange={(e) => onWalletNameChange(e.target.value)}
             />
           </div>
-
-          {/* Email + Password — only when server is connected */}
-          {isConnected && (
-            <>
-              <div>
-                <label className="text-sm text-muted-foreground mb-2 block">
-                  Email (for verification)
-                </label>
-                <Input
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => onEmailChange(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground mb-2 block">
-                  Password
-                </label>
-                <Input
-                  type="password"
-                  placeholder="Secure password"
-                  value={password}
-                  onChange={(e) => onPasswordChange(e.target.value)}
-                />
-              </div>
-            </>
-          )}
 
           <Button
             className="w-full"
