@@ -6,17 +6,20 @@ import {
   ArrowDownLeft,
   HandCoins,
   DollarSign,
-  XCircle
+  XCircle,
+  ArrowLeftRight
 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import type { Contact, ChatMessage } from '../types'
-import { getInitials, shortAddr } from '../types'
+import { getInitials, shortAddr, ETH_PRICE_USD } from '../types'
+import { TransferConfirmDialog } from './TransferConfirmDialog'
 
 interface TransactionChatProps {
   contact: Contact
   messages: ChatMessage[]
+  onSendMessage: (msg: ChatMessage) => void
 }
 
 function MessageBubble({ msg, contact }: { msg: ChatMessage; contact: Contact }) {
@@ -136,14 +139,67 @@ function MessageBubble({ msg, contact }: { msg: ChatMessage; contact: Contact })
   )
 }
 
-export function TransactionChat({ contact, messages }: TransactionChatProps) {
+export function TransactionChat({ contact, messages, onSendMessage }: TransactionChatProps) {
   const [inputText, setInputText] = useState('')
   const [sendMode, setSendMode] = useState<'message' | 'eth'>('message')
+  const [ethInputUnit, setEthInputUnit] = useState<'eth' | 'usd'>('eth')
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [pendingAmountEth, setPendingAmountEth] = useState(0)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  const numericInput = parseFloat(inputText) || 0
+  const ethEquivalent = ethInputUnit === 'eth' ? numericInput : numericInput / ETH_PRICE_USD
+  const displayConversion =
+    numericInput > 0
+      ? ethInputUnit === 'eth'
+        ? `≈ $${(numericInput * ETH_PRICE_USD).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        : `≈ ${ethEquivalent.toFixed(6)} ETH`
+      : ''
+
+  const handleSend = () => {
+    if (!inputText.trim()) return
+
+    if (sendMode === 'message') {
+      const now = new Date()
+      const ts = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+      const msg: ChatMessage = {
+        id: `m_${Date.now()}`,
+        sender: 'me',
+        type: 'text',
+        text: inputText.trim(),
+        timestamp: ts,
+        status: 'confirmed'
+      }
+      onSendMessage(msg)
+      setInputText('')
+    } else {
+      if (numericInput <= 0) return
+      setPendingAmountEth(ethEquivalent)
+      setShowConfirm(true)
+    }
+  }
+
+  const handleConfirmTransfer = () => {
+    const now = new Date()
+    const ts = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    const msg: ChatMessage = {
+      id: `m_${Date.now()}`,
+      sender: 'me',
+      type: 'transfer',
+      amount: pendingAmountEth.toFixed(4),
+      usdValue: pendingAmountEth * ETH_PRICE_USD,
+      timestamp: ts,
+      status: 'pending'
+    }
+    onSendMessage(msg)
+    setShowConfirm(false)
+    setInputText('')
+    setPendingAmountEth(0)
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -194,7 +250,55 @@ export function TransactionChat({ contact, messages }: TransactionChatProps) {
             <DollarSign className="w-3 h-3" />
             Send ETH
           </Button>
+
+          {/* ETH / USD toggle — only in eth mode */}
+          {sendMode === 'eth' && (
+            <motion.div
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center ml-2 rounded-full border border-border overflow-hidden"
+            >
+              <button
+                className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  ethInputUnit === 'eth'
+                    ? 'bg-purple-600 text-white'
+                    : 'text-muted-foreground hover:text-white'
+                }`}
+                onClick={() => {
+                  setEthInputUnit('eth')
+                  setInputText('')
+                }}
+              >
+                ETH
+              </button>
+              <button
+                className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  ethInputUnit === 'usd'
+                    ? 'bg-purple-600 text-white'
+                    : 'text-muted-foreground hover:text-white'
+                }`}
+                onClick={() => {
+                  setEthInputUnit('usd')
+                  setInputText('')
+                }}
+              >
+                USD
+              </button>
+            </motion.div>
+          )}
         </div>
+
+        {/* Conversion hint */}
+        {sendMode === 'eth' && displayConversion && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-xs text-muted-foreground mb-1.5 px-1 flex items-center gap-1"
+          >
+            <ArrowLeftRight className="w-3 h-3" />
+            {displayConversion}
+          </motion.p>
+        )}
 
         <div className="flex items-center gap-2">
           <Input
@@ -203,26 +307,35 @@ export function TransactionChat({ contact, messages }: TransactionChatProps) {
             placeholder={
               sendMode === 'message'
                 ? 'Type a message…'
-                : 'Amount in ETH…'
+                : ethInputUnit === 'eth'
+                  ? 'Amount in ETH…'
+                  : 'Amount in USD…'
             }
             type={sendMode === 'eth' ? 'number' : 'text'}
             className="flex-1 h-10 bg-muted/50 border-none rounded-full px-4 text-sm"
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && inputText.trim()) {
-                setInputText('')
-              }
+              if (e.key === 'Enter') handleSend()
             }}
           />
           <Button
             size="icon"
             className="h-10 w-10 rounded-full bg-purple-600 hover:bg-purple-700 shrink-0"
-            disabled={!inputText.trim()}
-            onClick={() => setInputText('')}
+            disabled={!inputText.trim() || (sendMode === 'eth' && numericInput <= 0)}
+            onClick={handleSend}
           >
             <Send className="w-4 h-4" />
           </Button>
         </div>
       </div>
+
+      {/* Confirm dialog */}
+      <TransferConfirmDialog
+        open={showConfirm}
+        onOpenChange={setShowConfirm}
+        contact={contact}
+        amountEth={pendingAmountEth}
+        onConfirm={handleConfirmTransfer}
+      />
     </div>
   )
 }

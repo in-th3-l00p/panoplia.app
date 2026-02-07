@@ -1,3 +1,5 @@
 export { ContactList } from './ContactList'
 export { TransactionChat } from './TransactionChat'
 export { MyAddressPanel } from './MyAddressPanel'
+export { AddContactDialog } from './AddContactDialog'
+export { TransferConfirmDialog } from './TransferConfirmDialog'

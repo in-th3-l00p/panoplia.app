@@ -14,6 +14,7 @@ interface ContactListProps {
   myAddress: string
   onSelectContact: (contact: Contact) => void
   onShowMyAddress: () => void
+  onAddContact: () => void
 }
 
 export function ContactList({
@@ -21,7 +22,8 @@ export function ContactList({
   selectedId,
   myAddress,
   onSelectContact,
-  onShowMyAddress
+  onShowMyAddress,
+  onAddContact
 }: ContactListProps) {
   const [search, setSearch] = useState('')
   const [copied, setCopied] = useState(false)
@@ -45,7 +47,7 @@ export function ContactList({
       <div className="p-4 pb-3 space-y-3 shrink-0">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-white">Transfers</h2>
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={onAddContact}>
             <UserPlus className="w-4 h-4" />
           </Button>
         </div>

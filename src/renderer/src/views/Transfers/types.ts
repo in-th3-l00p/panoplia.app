@@ -197,3 +197,12 @@ export function getInitials(name: string): string {
 export function shortAddr(address: string): string {
   return shortenAddress(address, 4)
 }
+
+/** Hardcoded ETH price — will be replaced by a real feed later */
+export const ETH_PRICE_USD = 3_357.42
+
+/** Random pastel-ish colors for new contacts */
+const CONTACT_COLORS = ['#a78bfa', '#f97316', '#22d3ee', '#f472b6', '#34d399', '#facc15', '#fb923c', '#38bdf8']
+export function randomColor(): string {
+  return CONTACT_COLORS[Math.floor(Math.random() * CONTACT_COLORS.length)]
+}

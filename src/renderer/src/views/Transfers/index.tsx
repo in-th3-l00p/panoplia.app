@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { ChevronLeft, MessageSquare } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
-import { ContactList, TransactionChat, MyAddressPanel } from './components'
+import { ContactList, TransactionChat, MyAddressPanel, AddContactDialog } from './components'
 import { CONTACTS, CHAT_HISTORIES } from './types'
-import type { Contact } from './types'
+import type { Contact, ChatMessage } from './types'
 
 export function Transfers() {
   const navigate = useNavigate()
@@ -13,8 +13,13 @@ export function Transfers() {
   const stored = localStorage.getItem('panoplia_active_wallet')
   const activeWallet = stored ? JSON.parse(stored) : null
 
+  const [contacts, setContacts] = useState<Contact[]>([...CONTACTS])
+  const [chatHistories, setChatHistories] = useState<Record<string, ChatMessage[]>>({
+    ...CHAT_HISTORIES
+  })
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
   const [showMyAddress, setShowMyAddress] = useState(false)
+  const [showAddContact, setShowAddContact] = useState(false)
 
   if (!activeWallet) {
     navigate('/wallets')
@@ -31,8 +36,42 @@ export function Transfers() {
     setShowMyAddress(true)
   }
 
+  const handleAddContact = (contact: Contact) => {
+    setContacts((prev) => [contact, ...prev])
+    setChatHistories((prev) => ({ ...prev, [contact.id]: [] }))
+    setSelectedContact(contact)
+    setShowMyAddress(false)
+  }
+
+  const handleSendMessage = useCallback(
+    (msg: ChatMessage) => {
+      if (!selectedContact) return
+      setChatHistories((prev) => ({
+        ...prev,
+        [selectedContact.id]: [...(prev[selectedContact.id] ?? []), msg]
+      }))
+
+      // Update last message preview on contact
+      setContacts((prev) =>
+        prev.map((c) =>
+          c.id === selectedContact.id
+            ? {
+                ...c,
+                lastMessage:
+                  msg.type === 'transfer'
+                    ? `You sent ${msg.amount} ETH`
+                    : msg.text ?? c.lastMessage,
+                lastTimestamp: 'Now'
+              }
+            : c
+        )
+      )
+    },
+    [selectedContact]
+  )
+
   const chatMessages = selectedContact
-    ? CHAT_HISTORIES[selectedContact.id] ?? []
+    ? chatHistories[selectedContact.id] ?? []
     : []
 
   return (
@@ -60,11 +99,12 @@ export function Transfers() {
         className="w-[340px] shrink-0 pt-12"
       >
         <ContactList
-          contacts={CONTACTS}
+          contacts={contacts}
           selectedId={showMyAddress ? '__my_address__' : selectedContact?.id ?? null}
           myAddress={activeWallet.address}
           onSelectContact={handleSelectContact}
           onShowMyAddress={handleShowMyAddress}
+          onAddContact={() => setShowAddContact(true)}
         />
       </motion.div>
 
@@ -76,7 +116,11 @@ export function Transfers() {
         className="flex-1 min-w-0"
       >
         {selectedContact ? (
-          <TransactionChat contact={selectedContact} messages={chatMessages} />
+          <TransactionChat
+            contact={selectedContact}
+            messages={chatMessages}
+            onSendMessage={handleSendMessage}
+          />
         ) : showMyAddress ? (
           <MyAddressPanel address={activeWallet.address} />
         ) : (
@@ -94,6 +138,13 @@ export function Transfers() {
           </div>
         )}
       </motion.div>
+
+      {/* Add Contact Dialog */}
+      <AddContactDialog
+        open={showAddContact}
+        onOpenChange={setShowAddContact}
+        onAdd={handleAddContact}
+      />
     </div>
   )
 }
