@@ -1,11 +1,15 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Search } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { TokenSwap, TokenPortfolio, DiscoverTokens } from './components'
 
 export function DeFi() {
   const navigate = useNavigate()
+  const [search, setSearch] = useState('')
 
   const stored = localStorage.getItem('panoplia_active_wallet')
   const activeWallet = stored ? JSON.parse(stored) : null
@@ -16,36 +20,38 @@ export function DeFi() {
   }
 
   return (
-    <div className="relative flex flex-col items-center min-h-screen w-full bg-background py-12">
-      {/* Back Button */}
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="absolute top-6 left-6"
-      >
+    <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
+      {/* Top bar */}
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-border shrink-0">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => navigate('/dashboard')}
-          className="text-muted-foreground hover:text-white"
+          className="text-muted-foreground hover:text-white h-8 w-8"
         >
-          <ChevronLeft className="w-6 h-6" />
+          <ChevronLeft className="w-5 h-5" />
         </Button>
-      </motion.div>
-
-      <div className="flex flex-col items-center w-full max-w-md px-6 gap-6 pb-12">
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-2xl font-bold text-white"
-        >
-          DeFi
-        </motion.h1>
-
-        <TokenSwap />
-        <TokenPortfolio />
-        <DiscoverTokens />
+        <h1 className="text-lg font-semibold text-white">DeFi</h1>
+        <div className="flex-1" />
+        <div className="relative w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search tokens…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-9 text-sm bg-muted/50 border-none"
+          />
+        </div>
       </div>
+
+      {/* Scrollable content */}
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="px-6 py-6 space-y-8">
+          <TokenSwap />
+          <TokenPortfolio search={search} />
+          <DiscoverTokens search={search} />
+        </div>
+      </ScrollArea>
     </div>
   )
 }
