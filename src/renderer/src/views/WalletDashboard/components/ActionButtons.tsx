@@ -1,7 +1,52 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { ArrowDownToLine, ArrowUpFromLine, Settings } from 'lucide-react'
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  ArrowLeftRight,
+  Layers,
+  ShieldCheck
+} from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
+
+const ACTIONS = [
+  {
+    label: 'Deposit',
+    icon: ArrowDownToLine,
+    path: '/transfer?mode=deposit',
+    variant: 'default' as const,
+    className:
+      'bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 shadow-lg shadow-purple-600/30'
+  },
+  {
+    label: 'Withdraw',
+    icon: ArrowUpFromLine,
+    path: '/transfer?mode=withdraw',
+    variant: 'secondary' as const,
+    className: ''
+  },
+  {
+    label: 'Transfers',
+    icon: ArrowLeftRight,
+    path: '/transfers',
+    variant: 'secondary' as const,
+    className: ''
+  },
+  {
+    label: 'DeFi',
+    icon: Layers,
+    path: '/defi',
+    variant: 'secondary' as const,
+    className: ''
+  },
+  {
+    label: 'Security',
+    icon: ShieldCheck,
+    path: '/security',
+    variant: 'ghost' as const,
+    className: 'border border-border'
+  }
+] as const
 
 export function ActionButtons() {
   const navigate = useNavigate()
@@ -11,42 +56,21 @@ export function ActionButtons() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5 }}
-      className="flex gap-4"
+      className="flex flex-wrap justify-center gap-3"
     >
-      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-        <Button
-          size="lg"
-          onClick={() => navigate('/transfer?mode=deposit')}
-          className="flex flex-col items-center gap-1 h-auto py-4 px-8 bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 shadow-lg shadow-purple-600/30"
-        >
-          <ArrowDownToLine className="w-6 h-6" />
-          <span className="text-sm font-medium">Deposit</span>
-        </Button>
-      </motion.div>
-
-      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-        <Button
-          size="lg"
-          variant="secondary"
-          onClick={() => navigate('/transfer?mode=withdraw')}
-          className="flex flex-col items-center gap-1 h-auto py-4 px-8"
-        >
-          <ArrowUpFromLine className="w-6 h-6" />
-          <span className="text-sm font-medium">Withdraw</span>
-        </Button>
-      </motion.div>
-
-      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-        <Button
-          size="lg"
-          variant="ghost"
-          onClick={() => navigate('/settings')}
-          className="flex flex-col items-center gap-1 h-auto py-4 px-8 border border-border"
-        >
-          <Settings className="w-6 h-6" />
-          <span className="text-sm font-medium">Settings</span>
-        </Button>
-      </motion.div>
+      {ACTIONS.map((action) => (
+        <motion.div key={action.label} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Button
+            size="lg"
+            variant={action.variant}
+            onClick={() => navigate(action.path)}
+            className={`flex flex-col items-center gap-1 h-auto py-3 px-5 ${action.className}`}
+          >
+            <action.icon className="w-5 h-5" />
+            <span className="text-xs font-medium">{action.label}</span>
+          </Button>
+        </motion.div>
+      ))}
     </motion.div>
   )
 }

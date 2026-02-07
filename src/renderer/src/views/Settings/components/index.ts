@@ -1,6 +1,0 @@
-export { SettingItem, type SettingItemProps } from './SettingItem'
-export { SettingsHeader } from './SettingsHeader'
-export { SettingsList } from './SettingsList'
-export { DangerZone } from './DangerZone'
-export { DeleteWalletDialog } from './DeleteWalletDialog'
-export { AppVersion } from './AppVersion'
