@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
-import { useWalletStore } from '@renderer/store/wallet-store'
+import { useEthWallet } from '@renderer/hooks/use-eth-wallet'
+import { useEthBalance } from '@renderer/hooks/use-eth-balance'
 import {
   BalanceChart,
   WalletInfo,
@@ -10,7 +11,8 @@ import {
 
 export function WalletDashboard() {
   const navigate = useNavigate()
-  const { activeWallet } = useWalletStore()
+  const { activeWallet } = useEthWallet()
+  const { usdBalance, ethBalance, change24h } = useEthBalance()
 
   // Redirect if no wallet is selected
   if (!activeWallet) {
@@ -23,7 +25,7 @@ export function WalletDashboard() {
       {/* Background Chart */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="w-full h-[60%] max-w-4xl">
-          <BalanceChart currentBalance={activeWallet.usdBalance} />
+          <BalanceChart currentBalance={usdBalance} />
         </div>
       </div>
 
@@ -32,8 +34,9 @@ export function WalletDashboard() {
         <BackButton />
         <WalletInfo wallet={activeWallet} />
         <BalanceDisplay
-          usdBalance={activeWallet.usdBalance}
-          ethBalance={activeWallet.balance}
+          usdBalance={usdBalance}
+          ethBalance={ethBalance}
+          changePercent={change24h}
         />
         <ActionButtons />
       </div>
