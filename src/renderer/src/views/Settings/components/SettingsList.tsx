@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { Shield, Bell, Palette, Globe, Key } from 'lucide-react'
+import { Shield, Bell, Palette, Globe, Key, Phone } from 'lucide-react'
 import { SettingItem } from './SettingItem'
 
 export function SettingsList() {
@@ -12,23 +12,13 @@ export function SettingsList() {
     >
       <SettingItem
         icon={<Shield className="w-5 h-5" />}
-        label="Security"
-        description="Manage your wallet security settings"
+        label="Social Recovery"
+        description="Enhance wallet security with trusted contacts"
       />
       <SettingItem
-        icon={<Key className="w-5 h-5" />}
-        label="Backup & Recovery"
-        description="Export your recovery phrase"
-      />
-      <SettingItem
-        icon={<Bell className="w-5 h-5" />}
-        label="Notifications"
-        description="Configure alerts and notifications"
-      />
-      <SettingItem
-        icon={<Palette className="w-5 h-5" />}
-        label="Appearance"
-        description="Customize the app look and feel"
+        icon={<Phone className="w-5 h-5" />}
+        label="MPC Devices"
+        description="Add multiple devices for secure access and recovery"
       />
       <SettingItem
         icon={<Globe className="w-5 h-5" />}
