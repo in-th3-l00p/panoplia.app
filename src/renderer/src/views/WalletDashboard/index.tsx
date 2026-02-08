@@ -1,4 +1,7 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useWalletStore } from '@renderer/store/wallet-store'
+import { useAuthStore } from '@renderer/store/auth-store'
 import {
   BalanceChart,
   WalletInfo,
@@ -9,25 +12,37 @@ import {
 
 export function WalletDashboard() {
   const navigate = useNavigate()
+  const { activeWallet, fetchTransactions } = useWalletStore()
+  const { user } = useAuthStore()
 
-  // Read the active wallet from localStorage (stored by WalletSelection)
-  const stored = localStorage.getItem('panoplia_active_wallet')
-  const activeWallet = stored ? JSON.parse(stored) : null
+  useEffect(() => {
+    if (!user) {
+      navigate('/auth')
+      return
+    }
+    if (!activeWallet) {
+      // Try restoring from localStorage
+      const stored = localStorage.getItem('panoplia_active_wallet')
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored)
+          useWalletStore.getState().setActiveWallet(parsed)
+          return
+        } catch {
+          // fall through
+        }
+      }
+      navigate('/wallets')
+      return
+    }
+    fetchTransactions(activeWallet.vaultId)
+  }, [user, activeWallet, navigate, fetchTransactions])
 
-  if (!activeWallet) {
-    navigate('/wallets')
-    return null
-  }
+  if (!activeWallet) return null
 
-  const usdBalance: number = activeWallet.usdBalance ?? 0
-  const ethBalance: string = activeWallet.balance ?? '0.0000'
-  const change24h = 2.34 // hardcoded until a real library is integrated
-
-  // Redirect if no wallet is selected
-  if (!activeWallet) {
-    navigate('/wallets')
-    return null
-  }
+  const usdBalance = activeWallet.usdBalance ?? 0
+  const ethBalance = activeWallet.balance ?? '0.0000'
+  const change24h = 0 // demo mode
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen w-full bg-background overflow-hidden">

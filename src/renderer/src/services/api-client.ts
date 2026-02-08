@@ -1,277 +1,241 @@
 /**
- * API Client Service
- * Handles all HTTP communication with the MPC server
+ * API Client for the Panoplia MPC server
+ * Maps to the actual REST endpoints at localhost:3000
  */
 
-import { API_CONFIG } from '@renderer/config'
-import type {
-  HealthCheckResponse,
-  VaultMetadata,
-  CreateFastVaultRequest,
-  CreateFastVaultResponse,
-  CreateSecureVaultRequest,
-  SecureVaultSession,
-  VerifyVaultResponse,
-  GetAddressResponse,
-  SignTransactionRequest,
-  SignTransactionResponse,
-  ExportVaultResponse,
-  RequestConfig
-} from '@renderer/types'
+import { API_CONFIG, STORAGE_KEYS } from '@renderer/config'
 
-/**
- * Custom error class for API errors
- */
-export class ApiClientError extends Error {
+// ── Response types ──────────────────────────────────────────
+
+export interface AuthResponse {
+  token: string
+  user: { id: string; email: string }
+}
+
+export interface VaultResponse {
+  vaultId: string
+  sessionId: string
+  qrPayload: string
+  status: string
+}
+
+export interface VaultDetail {
+  id: string
+  user_id: string
+  name: string
+  threshold: number
+  total_parties: number
+  status: 'pending' | 'active' | 'archived'
+  ecdsa_pubkey: string | null
+  eddsa_pubkey: string | null
+  created_at: string
+  addresses: Array<{ vault_id: string; chain: string; address: string }>
+}
+
+export interface TransactionRecord {
+  id: string
+  vault_id: string
+  chain: string
+  to_address: string
+  amount: string
+  tx_hash: string | null
+  status: string
+  created_at: string
+}
+
+export interface RecoveryConfig {
+  id: string
+  vault_id: string
+  threshold: number
+  total_guardians: number
+  status: string
+  guardians: Array<{
+    id: string
+    identifier: string
+    name: string | null
+    status: string
+  }>
+}
+
+// ── Error class ─────────────────────────────────────────────
+
+export class ApiError extends Error {
   constructor(
-    message: string,
-    public statusCode?: number,
-    public code?: string,
-    public details?: Record<string, unknown>
+    public statusCode: number,
+    message: string
   ) {
     super(message)
-    this.name = 'ApiClientError'
+    this.name = 'ApiError'
   }
 }
 
-/**
- * API Client class for MPC server communication
- * Implements the adapter pattern for HTTP requests
- */
-export class ApiClient {
-  private baseUrl: string
-  private defaultTimeout: number
-  private defaultRetries: number
+// ── Core request helper ─────────────────────────────────────
 
-  constructor(config?: Partial<typeof API_CONFIG>) {
-    this.baseUrl = config?.baseUrl || API_CONFIG.baseUrl
-    this.defaultTimeout = config?.timeout || API_CONFIG.timeout
-    this.defaultRetries = config?.retries || API_CONFIG.retries
+function getToken(): string | null {
+  return localStorage.getItem(STORAGE_KEYS.token)
+}
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const token = getToken()
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...((options.headers as Record<string, string>) || {})
+  }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
   }
 
-  /**
-   * Generic request method with retry logic
-   */
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {},
-    config?: RequestConfig
-  ): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`
-    const timeout = config?.timeout || this.defaultTimeout
-    const retries = config?.retries ?? this.defaultRetries
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.timeout)
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), timeout)
-
-    const fetchOptions: RequestInit = {
+  try {
+    const res = await fetch(`${API_CONFIG.baseUrl}/api${path}`, {
       ...options,
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-        ...config?.headers
-      }
+      headers,
+      signal: controller.signal
+    })
+    clearTimeout(timeoutId)
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ message: res.statusText }))
+      throw new ApiError(res.status, body.message || body.error || res.statusText)
     }
-
-    let lastError: Error | null = null
-
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      try {
-        const response = await fetch(url, fetchOptions)
-        clearTimeout(timeoutId)
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new ApiClientError(
-            data.error || `Request failed with status ${response.status}`,
-            response.status,
-            data.code,
-            data.details
-          )
-        }
-
-        // Handle API response wrapper
-        if ('success' in data) {
-          if (!data.success) {
-            throw new ApiClientError(data.error || 'Request failed')
-          }
-          return data.data as T
-        }
-
-        return data as T
-      } catch (error) {
-        lastError = error as Error
-
-        if (error instanceof ApiClientError) {
-          throw error
-        }
-
-        if ((error as Error).name === 'AbortError') {
-          throw new ApiClientError('Request timeout', 408, 'TIMEOUT')
-        }
-
-        // Retry on network errors
-        if (attempt < retries) {
-          await this.delay(Math.pow(2, attempt) * 1000) // Exponential backoff
-          continue
-        }
-      }
+    if (res.status === 204) return undefined as T
+    return res.json()
+  } catch (err) {
+    clearTimeout(timeoutId)
+    if ((err as Error).name === 'AbortError') {
+      throw new ApiError(408, 'Request timeout')
     }
-
-    throw lastError || new ApiClientError('Request failed after retries')
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms))
-  }
-
-  // ============================================
-  // Health & Info Endpoints
-  // ============================================
-
-  /**
-   * Check server health
-   */
-  async healthCheck(): Promise<HealthCheckResponse> {
-    return this.request<HealthCheckResponse>('/health')
-  }
-
-  /**
-   * Get API info
-   */
-  async getApiInfo(): Promise<Record<string, unknown>> {
-    return this.request<Record<string, unknown>>('/')
-  }
-
-  // ============================================
-  // Fast Vault Endpoints
-  // ============================================
-
-  /**
-   * Create a new fast vault (2-of-2 MPC)
-   */
-  async createFastVault(data: CreateFastVaultRequest): Promise<CreateFastVaultResponse> {
-    return this.request<CreateFastVaultResponse>('/api/vaults/fast', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    })
-  }
-
-  /**
-   * Verify a vault with email code
-   */
-  async verifyVault(vaultId: string, code: string): Promise<VerifyVaultResponse> {
-    return this.request<VerifyVaultResponse>(`/api/vaults/${vaultId}/verify`, {
-      method: 'POST',
-      body: JSON.stringify({ code })
-    })
-  }
-
-  /**
-   * Get vault address for a specific chain
-   */
-  async getAddress(vaultId: string, chain: string): Promise<GetAddressResponse> {
-    return this.request<GetAddressResponse>(`/api/vaults/${vaultId}/address/${chain}`)
-  }
-
-  /**
-   * Get addresses for multiple chains
-   */
-  async getAddresses(vaultId: string, chains: string[]): Promise<Map<string, string>> {
-    const addresses = new Map<string, string>()
-
-    // Fetch addresses in parallel
-    const results = await Promise.allSettled(
-      chains.map(chain => this.getAddress(vaultId, chain))
-    )
-
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        addresses.set(chains[index], result.value.address)
-      }
-    })
-
-    return addresses
-  }
-
-  /**
-   * Sign a transaction
-   */
-  async signTransaction(
-    vaultId: string,
-    data: SignTransactionRequest
-  ): Promise<SignTransactionResponse> {
-    return this.request<SignTransactionResponse>(`/api/vaults/${vaultId}/sign`, {
-      method: 'POST',
-      body: JSON.stringify(data)
-    })
-  }
-
-  /**
-   * Export vault backup
-   */
-  async exportVault(vaultId: string, password: string): Promise<ExportVaultResponse> {
-    return this.request<ExportVaultResponse>(`/api/vaults/${vaultId}/export`, {
-      method: 'POST',
-      body: JSON.stringify({ password })
-    })
-  }
-
-  /**
-   * Get vault metadata
-   */
-  async getVault(vaultId: string): Promise<VaultMetadata> {
-    return this.request<VaultMetadata>(`/api/vaults/${vaultId}`)
-  }
-
-  /**
-   * List all vaults, optionally filtered by userId
-   */
-  async listVaults(userId?: string): Promise<VaultMetadata[]> {
-    const query = userId ? `?userId=${encodeURIComponent(userId)}` : ''
-    return this.request<VaultMetadata[]>(`/api/vaults${query}`)
-  }
-
-  // ============================================
-  // Secure Vault Endpoints
-  // ============================================
-
-  /**
-   * Create a secure vault (N-of-M threshold)
-   */
-  async createSecureVault(data: CreateSecureVaultRequest): Promise<SecureVaultSession> {
-    return this.request<SecureVaultSession>('/api/vaults/secure', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    })
-  }
-
-  /**
-   * Get secure vault session status
-   */
-  async getSecureVaultSession(vaultId: string): Promise<SecureVaultSession> {
-    return this.request<SecureVaultSession>(`/api/vaults/${vaultId}/session`)
+    throw err
   }
 }
 
-// Singleton instance
-let apiClientInstance: ApiClient | null = null
+// ── Auth ────────────────────────────────────────────────────
 
-/**
- * Get or create API client instance
- */
-export function getApiClient(config?: Partial<typeof API_CONFIG>): ApiClient {
-  if (!apiClientInstance || config) {
-    apiClientInstance = new ApiClient(config)
-  }
-  return apiClientInstance
+export async function register(email: string, password: string): Promise<AuthResponse> {
+  return request('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ email, password })
+  })
 }
 
-/**
- * Reset API client (for testing)
- */
-export function resetApiClient(): void {
-  apiClientInstance = null
+export async function login(email: string, password: string): Promise<AuthResponse> {
+  return request('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password })
+  })
+}
+
+export async function getMe(): Promise<{ id: string; email: string }> {
+  return request('/auth/me')
+}
+
+// ── Vaults ──────────────────────────────────────────────────
+
+export async function createVault(name: string): Promise<VaultResponse> {
+  return request('/vaults', {
+    method: 'POST',
+    body: JSON.stringify({ name })
+  })
+}
+
+export async function listVaults(): Promise<{ vaults: VaultDetail[] }> {
+  return request('/vaults')
+}
+
+export async function getVault(id: string): Promise<VaultDetail> {
+  return request(`/vaults/${id}`)
+}
+
+export async function archiveVault(id: string): Promise<void> {
+  return request(`/vaults/${id}`, { method: 'DELETE' })
+}
+
+export async function exportVault(id: string): Promise<{ vaultContent: string }> {
+  return request(`/vaults/${id}/export`)
+}
+
+export async function importVault(fileContent: string): Promise<{ vaultId: string }> {
+  return request('/vaults/import', {
+    method: 'POST',
+    body: JSON.stringify({ fileContent })
+  })
+}
+
+// ── Transactions ────────────────────────────────────────────
+
+export async function signTransaction(
+  vaultId: string,
+  params: { chain: string; to: string; amount: string; memo?: string }
+): Promise<{ sessionId: string; signingPayload: string }> {
+  return request(`/vaults/${vaultId}/transactions/sign`, {
+    method: 'POST',
+    body: JSON.stringify(params)
+  })
+}
+
+export async function listTransactions(
+  vaultId: string
+): Promise<{ transactions: TransactionRecord[] }> {
+  return request(`/vaults/${vaultId}/transactions`)
+}
+
+// ── Recovery ────────────────────────────────────────────────
+
+export async function setupRecovery(
+  vaultId: string,
+  guardians: Array<{ identifier: string; name?: string }>,
+  threshold: number
+): Promise<{ recoveryId: string; guardianIds: string[] }> {
+  return request(`/vaults/${vaultId}/recovery/setup`, {
+    method: 'POST',
+    body: JSON.stringify({ guardians, threshold })
+  })
+}
+
+export async function getRecoveryConfig(vaultId: string): Promise<RecoveryConfig | null> {
+  try {
+    return await request(`/vaults/${vaultId}/recovery`)
+  } catch (e) {
+    if (e instanceof ApiError && e.statusCode === 404) return null
+    throw e
+  }
+}
+
+export async function revokeRecovery(vaultId: string): Promise<void> {
+  return request(`/vaults/${vaultId}/recovery`, { method: 'DELETE' })
+}
+
+export async function initiateRecovery(
+  vaultId: string,
+  email: string
+): Promise<{ attemptId: string; sharesNeeded: number }> {
+  return request('/recovery/initiate', {
+    method: 'POST',
+    body: JSON.stringify({ vaultId, email })
+  })
+}
+
+export async function submitShare(
+  attemptId: string,
+  guardianId: string,
+  shareData: string
+): Promise<{ collected: number; needed: number }> {
+  return request(`/recovery/submit-share?attemptId=${attemptId}`, {
+    method: 'POST',
+    body: JSON.stringify({ guardianId, shareData })
+  })
+}
+
+export async function completeRecovery(
+  attemptId: string
+): Promise<{ vaultContent: string }> {
+  return request(`/recovery/${attemptId}/complete`, { method: 'POST' })
+}
+
+// ── Health ──────────────────────────────────────────────────
+
+export async function checkHealth(): Promise<{ status: string; timestamp: string }> {
+  return request('/health')
 }

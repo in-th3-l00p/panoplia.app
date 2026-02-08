@@ -16,9 +16,8 @@ export function WalletInfo({ wallet }: WalletInfoProps) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // Check if wallet has ENS (mock check for demo)
-  const hasENS = wallet.address.toLowerCase().includes('742d35')
-  const ensName = hasENS ? 'vitalik.eth' : null
+  // ENS resolution would go here in production
+  const ensName: string | null = null
 
   return (
     <motion.div

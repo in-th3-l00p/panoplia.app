@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useCallback, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { ChevronLeft, MessageSquare } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
@@ -9,6 +9,7 @@ import type { Contact, ChatMessage } from './types'
 
 export function Transfers() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   const stored = localStorage.getItem('panoplia_active_wallet')
   const activeWallet = stored ? JSON.parse(stored) : null
@@ -20,6 +21,14 @@ export function Transfers() {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
   const [showMyAddress, setShowMyAddress] = useState(false)
   const [showAddContact, setShowAddContact] = useState(false)
+
+  // Auto-show address panel if navigated with ?show=address
+  useEffect(() => {
+    if (searchParams.get('show') === 'address') {
+      setShowMyAddress(true)
+      setSelectedContact(null)
+    }
+  }, [searchParams])
 
   if (!activeWallet) {
     navigate('/wallets')

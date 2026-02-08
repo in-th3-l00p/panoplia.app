@@ -1,7 +1,7 @@
 {
-  "name": "desktop",
-  "version": "1.0.0",
-  "description": "An Electron application with React and TypeScript",
+  "name": "panoplia",
+  "version": "0.1.0",
+  "description": "Panoplia — MPC-Secured Multi-Chain Wallet",
   "main": "./out/main/index.js",
   "author": "example.com",
   "homepage": "https://electron-vite.org",

@@ -7,7 +7,7 @@ interface BalanceDisplayProps {
   changePercent?: number
 }
 
-export function BalanceDisplay({ usdBalance, ethBalance, changePercent = 12.5 }: BalanceDisplayProps) {
+export function BalanceDisplay({ usdBalance, ethBalance, changePercent = 0 }: BalanceDisplayProps) {
   const isPositive = changePercent >= 0
 
   return (

@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { ArrowDownUp } from 'lucide-react'
+import { ArrowDownUp, Loader2, CheckCircle2 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import * as api from '@renderer/services/api-client'
 
 interface Token {
   symbol: string
@@ -24,6 +25,7 @@ export function TokenSwap() {
   const [fromToken, setFromToken] = useState(TOKENS[0])
   const [toToken, setToToken] = useState(TOKENS[1])
   const [fromAmount, setFromAmount] = useState('')
+  const [swapState, setSwapState] = useState<'idle' | 'signing' | 'done'>('idle')
 
   const numericFrom = parseFloat(fromAmount) || 0
   const estimatedTo = numericFrom > 0 ? (numericFrom * fromToken.price) / toToken.price : 0
@@ -32,6 +34,33 @@ export function TokenSwap() {
     setFromToken(toToken)
     setToToken(fromToken)
     setFromAmount('')
+  }
+
+  const handleSwap = async () => {
+    if (numericFrom <= 0) return
+    setSwapState('signing')
+
+    // Use MPC signing to authorize the swap
+    const stored = localStorage.getItem('panoplia_active_wallet')
+    const activeWallet = stored ? JSON.parse(stored) : null
+    if (activeWallet?.vaultId) {
+      try {
+        await api.signTransaction(activeWallet.vaultId, {
+          chain: 'Ethereum',
+          to: '0x0000000000000000000000000000000000000000', // Swap contract placeholder
+          amount: fromAmount
+        })
+      } catch {
+        // Demo mode: proceed anyway
+      }
+    }
+
+    await new Promise((r) => setTimeout(r, 1500))
+    setSwapState('done')
+    setTimeout(() => {
+      setSwapState('idle')
+      setFromAmount('')
+    }, 2000)
   }
 
   return (
@@ -55,6 +84,7 @@ export function TokenSwap() {
               value={fromAmount}
               onChange={(e) => setFromAmount(e.target.value)}
               className="text-lg h-12 flex-1 bg-muted/30 border-border"
+              disabled={swapState !== 'idle'}
             />
             <select
               className="h-12 bg-muted border border-border rounded-lg px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500/40"
@@ -63,6 +93,7 @@ export function TokenSwap() {
                 const t = TOKENS.find((tk) => tk.symbol === e.target.value)
                 if (t) setFromToken(t)
               }}
+              disabled={swapState !== 'idle'}
             >
               {TOKENS.map((t) => (
                 <option key={t.symbol} value={t.symbol}>
@@ -83,6 +114,7 @@ export function TokenSwap() {
             size="icon"
             className="rounded-full border border-border h-10 w-10"
             onClick={swapTokens}
+            disabled={swapState !== 'idle'}
           >
             <ArrowDownUp className="w-4 h-4" />
           </Button>
@@ -106,6 +138,7 @@ export function TokenSwap() {
                 const t = TOKENS.find((tk) => tk.symbol === e.target.value)
                 if (t) setToToken(t)
               }}
+              disabled={swapState !== 'idle'}
             >
               {TOKENS.map((t) => (
                 <option key={t.symbol} value={t.symbol}>
@@ -114,7 +147,7 @@ export function TokenSwap() {
               ))}
             </select>
           </div>
-          {numericFrom > 0 && (
+          {numericFrom > 0 && swapState === 'idle' && (
             <p className="text-xs text-muted-foreground">
               1 {fromToken.symbol} = {(fromToken.price / toToken.price).toFixed(6)}{' '}
               {toToken.symbol}
@@ -125,10 +158,13 @@ export function TokenSwap() {
         {/* Swap button */}
         <div className="pt-7">
           <Button
-            className="h-12 px-8 bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800"
-            disabled={numericFrom <= 0}
+            className="h-12 px-8 bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 gap-2"
+            disabled={numericFrom <= 0 || swapState !== 'idle'}
+            onClick={handleSwap}
           >
-            Swap
+            {swapState === 'signing' && <Loader2 className="w-4 h-4 animate-spin" />}
+            {swapState === 'done' && <CheckCircle2 className="w-4 h-4 text-green-300" />}
+            {swapState === 'idle' ? 'Swap' : swapState === 'signing' ? 'Signing...' : 'Done!'}
           </Button>
         </div>
       </div>

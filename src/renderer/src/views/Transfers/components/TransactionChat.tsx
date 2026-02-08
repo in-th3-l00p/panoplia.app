@@ -7,11 +7,13 @@ import {
   HandCoins,
   DollarSign,
   XCircle,
-  ArrowLeftRight
+  ArrowLeftRight,
+  Loader2
 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
+import * as api from '@renderer/services/api-client'
 import type { Contact, ChatMessage } from '../types'
 import { getInitials, shortAddr, ETH_PRICE_USD } from '../types'
 import { TransferConfirmDialog } from './TransferConfirmDialog'
@@ -145,6 +147,7 @@ export function TransactionChat({ contact, messages, onSendMessage }: Transactio
   const [ethInputUnit, setEthInputUnit] = useState<'eth' | 'usd'>('eth')
   const [showConfirm, setShowConfirm] = useState(false)
   const [pendingAmountEth, setPendingAmountEth] = useState(0)
+  const [signing, setSigning] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -183,9 +186,29 @@ export function TransactionChat({ contact, messages, onSendMessage }: Transactio
     }
   }
 
-  const handleConfirmTransfer = () => {
+  const handleConfirmTransfer = async () => {
+    setSigning(true)
     const now = new Date()
     const ts = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+
+    // Attempt MPC co-signing via the real backend
+    const stored = localStorage.getItem('panoplia_active_wallet')
+    const activeWallet = stored ? JSON.parse(stored) : null
+    let status: 'pending' | 'confirmed' = 'pending'
+
+    if (activeWallet?.vaultId) {
+      try {
+        await api.signTransaction(activeWallet.vaultId, {
+          chain: 'Ethereum',
+          to: contact.address,
+          amount: pendingAmountEth.toFixed(6)
+        })
+        status = 'confirmed'
+      } catch {
+        // Still show as pending in demo mode
+      }
+    }
+
     const msg: ChatMessage = {
       id: `m_${Date.now()}`,
       sender: 'me',
@@ -193,12 +216,13 @@ export function TransactionChat({ contact, messages, onSendMessage }: Transactio
       amount: pendingAmountEth.toFixed(4),
       usdValue: pendingAmountEth * ETH_PRICE_USD,
       timestamp: ts,
-      status: 'pending'
+      status
     }
     onSendMessage(msg)
     setShowConfirm(false)
     setInputText('')
     setPendingAmountEth(0)
+    setSigning(false)
   }
 
   return (

@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: desktop
+appId: com.panoplia.wallet
+productName: Panoplia
 directories:
   buildResources: build
 files:
@@ -12,11 +12,11 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: desktop
+  executableName: Panoplia
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
-  shortcutName: ${productName}
-  uninstallDisplayName: ${productName}
+  shortcutName: Panoplia
+  uninstallDisplayName: Panoplia
   createDesktopShortcut: always
 mac:
   entitlementsInherit: build/entitlements.mac.plist
@@ -33,13 +33,11 @@ linux:
     - AppImage
     - snap
     - deb
-  maintainer: electronjs.org
+  maintainer: panoplia.eth
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
 publish:
   provider: generic
-  url: https://example.com/auto-updates
-electronDownload:
-  mirror: https://npmmirror.com/mirrors/electron/
+  url: https://panoplia.eth/auto-updates

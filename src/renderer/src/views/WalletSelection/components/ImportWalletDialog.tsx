@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Download, FileJson, KeyRound, Users } from 'lucide-react'
+import { Download, FileJson, Users, Loader2 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import {
   Dialog,
@@ -10,14 +10,57 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Input } from '@renderer/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
+import * as api from '@renderer/services/api-client'
 
 interface ImportWalletDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onImported?: () => void
 }
 
-export function ImportWalletDialog({ open, onOpenChange }: ImportWalletDialogProps) {
+export function ImportWalletDialog({ open, onOpenChange, onImported }: ImportWalletDialogProps) {
   const [walletName, setWalletName] = useState('')
+  const [vaultContent, setVaultContent] = useState('')
+  const [recoveryVaultId, setRecoveryVaultId] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleJsonImport = async () => {
+    if (!vaultContent.trim()) return
+    setImporting(true)
+    setError('')
+    try {
+      await api.importVault(vaultContent.trim(), walletName || 'Imported Wallet')
+      onOpenChange(false)
+      setVaultContent('')
+      setWalletName('')
+      onImported?.()
+    } catch (err: any) {
+      setError(err.message || 'Import failed')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const handleSocialRecovery = async () => {
+    if (!recoveryVaultId.trim()) return
+    setImporting(true)
+    setError('')
+    try {
+      const res = await api.completeRecovery(recoveryVaultId.trim())
+      if (res.vaultContent) {
+        await api.importVault(res.vaultContent, walletName || 'Recovered Wallet')
+      }
+      onOpenChange(false)
+      setRecoveryVaultId('')
+      setWalletName('')
+      onImported?.()
+    } catch (err: any) {
+      setError(err.message || 'Recovery failed')
+    } finally {
+      setImporting(false)
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -28,7 +71,7 @@ export function ImportWalletDialog({ open, onOpenChange }: ImportWalletDialogPro
             Import Wallet
           </DialogTitle>
           <DialogDescription>
-            Choose how you'd like to import your wallet
+            Restore a vault from a backup or via social recovery
           </DialogDescription>
         </DialogHeader>
 
@@ -44,15 +87,15 @@ export function ImportWalletDialog({ open, onOpenChange }: ImportWalletDialogPro
           />
         </div>
 
+        {error && (
+          <p className="text-sm text-destructive">{error}</p>
+        )}
+
         <Tabs defaultValue="json" className="w-full mt-2">
           <TabsList className="w-full">
             <TabsTrigger value="json" className="flex-1 gap-1.5 text-xs">
               <FileJson className="w-3.5 h-3.5" />
-              JSON File
-            </TabsTrigger>
-            <TabsTrigger value="seed" className="flex-1 gap-1.5 text-xs">
-              <KeyRound className="w-3.5 h-3.5" />
-              Seed Phrase
+              Vault Backup
             </TabsTrigger>
             <TabsTrigger value="social" className="flex-1 gap-1.5 text-xs">
               <Users className="w-3.5 h-3.5" />
@@ -60,40 +103,27 @@ export function ImportWalletDialog({ open, onOpenChange }: ImportWalletDialogPro
             </TabsTrigger>
           </TabsList>
 
-          {/* JSON Import */}
+          {/* JSON/Vault Import */}
           <TabsContent value="json" className="space-y-4 mt-4">
             <div>
               <label className="text-sm text-muted-foreground mb-2 block">
-                Wallet JSON File
-              </label>
-              <div className="border border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-purple-500/50 transition-colors">
-                <FileJson className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  Click to select or drag &amp; drop your JSON keystore file
-                </p>
-              </div>
-            </div>
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">
-                Password
-              </label>
-              <Input type="password" placeholder="JSON file password" />
-            </div>
-            <Button className="w-full">Import from JSON</Button>
-          </TabsContent>
-
-          {/* Seed Phrase Import */}
-          <TabsContent value="seed" className="space-y-4 mt-4">
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">
-                Recovery Phrase
+                Vault Content (base64)
               </label>
               <textarea
-                className="w-full min-h-[100px] rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/40 resize-none"
-                placeholder="Enter your 12 or 24 word recovery phrase, separated by spaces…"
+                className="w-full min-h-[100px] rounded-lg border border-border bg-background px-3 py-2 text-sm font-mono placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/40 resize-none"
+                placeholder="Paste your exported vault content here..."
+                value={vaultContent}
+                onChange={(e) => setVaultContent(e.target.value)}
               />
             </div>
-            <Button className="w-full">Import from Seed Phrase</Button>
+            <Button
+              className="w-full gap-2"
+              onClick={handleJsonImport}
+              disabled={importing || !vaultContent.trim()}
+            >
+              {importing && <Loader2 className="w-4 h-4 animate-spin" />}
+              {importing ? 'Importing...' : 'Import Vault'}
+            </Button>
           </TabsContent>
 
           {/* Social Recovery Import */}
@@ -106,17 +136,29 @@ export function ImportWalletDialog({ open, onOpenChange }: ImportWalletDialogPro
                 </h4>
               </div>
               <p className="text-xs text-muted-foreground">
-                Request recovery from your trusted guardians. They will need to
-                approve the recovery on their devices.
+                If your guardians have submitted enough shares, complete the
+                recovery to restore your vault.
               </p>
             </div>
             <div>
               <label className="text-sm text-muted-foreground mb-2 block">
-                Wallet Address to Recover
+                Vault ID to Recover
               </label>
-              <Input placeholder="0x…" />
+              <Input
+                placeholder="vault-id..."
+                value={recoveryVaultId}
+                onChange={(e) => setRecoveryVaultId(e.target.value)}
+                className="font-mono text-sm"
+              />
             </div>
-            <Button className="w-full">Start Recovery</Button>
+            <Button
+              className="w-full gap-2"
+              onClick={handleSocialRecovery}
+              disabled={importing || !recoveryVaultId.trim()}
+            >
+              {importing && <Loader2 className="w-4 h-4 animate-spin" />}
+              {importing ? 'Recovering...' : 'Complete Recovery'}
+            </Button>
           </TabsContent>
         </Tabs>
       </DialogContent>

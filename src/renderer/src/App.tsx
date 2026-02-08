@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import { SplashScreen } from './views/SplashScreen'
+import { Auth } from './views/Auth'
 import { WalletSelection } from './views/WalletSelection'
 import { WalletDashboard } from './views/WalletDashboard'
 import { Transfer } from './views/Transfer'
@@ -11,6 +12,7 @@ function App(): React.JSX.Element {
   return (
     <Routes>
       <Route path="/" element={<SplashScreen />} />
+      <Route path="/auth" element={<Auth />} />
       <Route path="/wallets" element={<WalletSelection />} />
       <Route path="/dashboard" element={<WalletDashboard />} />
       <Route path="/transfer" element={<Transfer />} />

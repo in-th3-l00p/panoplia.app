@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import {
-  ArrowDownToLine,
-  ArrowUpFromLine,
+  Send,
+  QrCode,
   ArrowLeftRight,
   Layers,
   ShieldCheck
@@ -11,22 +11,22 @@ import { Button } from '@renderer/components/ui/button'
 
 const ACTIONS = [
   {
-    label: 'Deposit',
-    icon: ArrowDownToLine,
-    path: '/transfer?mode=deposit',
+    label: 'Send',
+    icon: Send,
+    path: '/transfer',
     variant: 'default' as const,
     className:
       'bg-gradient-to-br from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 shadow-lg shadow-purple-600/30'
   },
   {
-    label: 'Withdraw',
-    icon: ArrowUpFromLine,
-    path: '/transfer?mode=withdraw',
+    label: 'Receive',
+    icon: QrCode,
+    path: '/transfers?show=address',
     variant: 'secondary' as const,
     className: ''
   },
   {
-    label: 'Transfers',
+    label: 'P2P',
     icon: ArrowLeftRight,
     path: '/transfers',
     variant: 'secondary' as const,

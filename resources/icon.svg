@@ -1,0 +1,205 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Main shield gradient: deep purple to lighter violet -->
+    <linearGradient id="shieldGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+
+    <!-- Inner glow gradient -->
+    <radialGradient id="innerGlow" cx="0.5" cy="0.35" r="0.65">
+      <stop offset="0%" stop-color="#c4b5fd" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Shadow gradient for depth -->
+    <linearGradient id="shadowGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6d28d9"/>
+      <stop offset="100%" stop-color="#4c1d95"/>
+    </linearGradient>
+
+    <!-- Highlight gradient for the lock body -->
+    <linearGradient id="lockGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e9d5ff"/>
+    </linearGradient>
+
+    <!-- Subtle border gradient -->
+    <linearGradient id="borderGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="50%" stop-color="#c4b5fd"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+
+    <!-- Drop shadow filter -->
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="20" flood-color="#4c1d95" flood-opacity="0.5"/>
+    </filter>
+
+    <!-- Inner shadow for lock -->
+    <filter id="innerShadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#4c1d95" flood-opacity="0.4"/>
+    </filter>
+
+    <!-- Glow effect for the lock -->
+    <filter id="lockGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Clip path for the shield shape -->
+    <clipPath id="shieldClip">
+      <path d="
+        M 512 80
+        C 512 80 680 80 820 130
+        Q 860 144 870 186
+        L 870 460
+        C 870 600 810 720 720 800
+        L 540 940
+        Q 512 958 484 940
+        L 304 800
+        C 214 720 154 600 154 460
+        L 154 186
+        Q 164 144 204 130
+        C 344 80 512 80 512 80
+        Z
+      "/>
+    </clipPath>
+  </defs>
+
+  <!-- Shield outer shape with border -->
+  <path d="
+    M 512 60
+    C 512 60 690 60 840 114
+    Q 886 130 896 178
+    L 896 470
+    C 896 618 832 746 736 830
+    L 546 976
+    Q 512 998 478 976
+    L 288 830
+    C 192 746 128 618 128 470
+    L 128 178
+    Q 138 130 184 114
+    C 334 60 512 60 512 60
+    Z
+  " fill="url(#borderGrad)" filter="url(#dropShadow)"/>
+
+  <!-- Shield main body -->
+  <path d="
+    M 512 80
+    C 512 80 680 80 820 130
+    Q 860 144 870 186
+    L 870 460
+    C 870 600 810 720 720 800
+    L 540 940
+    Q 512 958 484 940
+    L 304 800
+    C 214 720 154 600 154 460
+    L 154 186
+    Q 164 144 204 130
+    C 344 80 512 80 512 80
+    Z
+  " fill="url(#shieldGrad)"/>
+
+  <!-- Inner glow overlay -->
+  <path d="
+    M 512 80
+    C 512 80 680 80 820 130
+    Q 860 144 870 186
+    L 870 460
+    C 870 600 810 720 720 800
+    L 540 940
+    Q 512 958 484 940
+    L 304 800
+    C 214 720 154 600 154 460
+    L 154 186
+    Q 164 144 204 130
+    C 344 80 512 80 512 80
+    Z
+  " fill="url(#innerGlow)"/>
+
+  <!-- Subtle inner outline for depth -->
+  <path d="
+    M 512 110
+    C 512 110 668 110 798 156
+    Q 832 168 840 206
+    L 840 456
+    C 840 584 782 700 698 776
+    L 536 910
+    Q 512 926 488 910
+    L 326 776
+    C 242 700 184 584 184 456
+    L 184 206
+    Q 192 168 226 156
+    C 356 110 512 110 512 110
+    Z
+  " fill="none" stroke="#c4b5fd" stroke-width="2" opacity="0.4"/>
+
+  <!-- Decorative horizontal line across shield -->
+  <line x1="220" y1="300" x2="804" y2="300" stroke="#c4b5fd" stroke-width="1.5" opacity="0.2"/>
+
+  <!-- Lock shackle (the U-shaped top part) -->
+  <path d="
+    M 400 460
+    L 400 380
+    C 400 300 440 250 512 250
+    C 584 250 624 300 624 380
+    L 624 460
+  " fill="none" stroke="white" stroke-width="36" stroke-linecap="round" opacity="0.95" filter="url(#lockGlow)"/>
+
+  <!-- Lock shackle inner cut -->
+  <path d="
+    M 400 460
+    L 400 380
+    C 400 300 440 250 512 250
+    C 584 250 624 300 624 380
+    L 624 460
+  " fill="none" stroke="url(#shieldGrad)" stroke-width="18" stroke-linecap="round"/>
+
+  <!-- Lock body (rounded rectangle) -->
+  <rect x="360" y="460" width="304" height="240" rx="32" ry="32"
+        fill="white" opacity="0.95" filter="url(#innerShadow)"/>
+
+  <!-- Lock body inner gradient overlay -->
+  <rect x="360" y="460" width="304" height="240" rx="32" ry="32"
+        fill="url(#lockGrad)" opacity="0.15"/>
+
+  <!-- Keyhole circle -->
+  <circle cx="512" cy="555" r="36" fill="url(#shieldGrad)"/>
+
+  <!-- Keyhole bottom (the drop/slot shape) -->
+  <path d="
+    M 498 575
+    L 488 650
+    Q 486 666 500 666
+    L 524 666
+    Q 538 666 536 650
+    L 526 575
+    Z
+  " fill="url(#shieldGrad)"/>
+
+  <!-- Small highlight dot on keyhole for gloss -->
+  <circle cx="500" cy="543" r="8" fill="white" opacity="0.6"/>
+
+  <!-- Stylized "P" watermark in background, very subtle -->
+  <text x="512" y="520" text-anchor="middle" dominant-baseline="central"
+        font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+        font-size="60" font-weight="800" fill="#c4b5fd" opacity="0.08"
+        transform="translate(0, -120)">
+    PANOPLIA
+  </text>
+
+  <!-- Three small dots at top of shield for MPC nodes -->
+  <circle cx="420" cy="175" r="14" fill="white" opacity="0.7"/>
+  <circle cx="512" cy="155" r="14" fill="white" opacity="0.85"/>
+  <circle cx="604" cy="175" r="14" fill="white" opacity="0.7"/>
+
+  <!-- Lines connecting the three dots (MPC network) -->
+  <line x1="434" y1="175" x2="498" y2="155" stroke="white" stroke-width="2.5" opacity="0.4"/>
+  <line x1="526" y1="155" x2="590" y2="175" stroke="white" stroke-width="2.5" opacity="0.4"/>
+  <line x1="434" y1="175" x2="590" y2="175" stroke="white" stroke-width="2" opacity="0.25"/>
+</svg>
